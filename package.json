@@ -1,0 +1,27 @@
+{
+	"name": "@codexstar/pi-side-chat",
+	"version": "1.0.0",
+	"description": "Standalone side chat for Pi CLI — parallel AI agent with read-only tools",
+	"type": "module",
+	"author": "Abhishek Tiwari",
+	"license": "MIT",
+	"pi": {
+		"extensions": [
+			"./extensions/side-chat-extension.ts"
+		]
+	},
+	"peerDependencies": {
+		"@mariozechner/pi-agent-core": "*",
+		"@mariozechner/pi-ai": "*",
+		"@mariozechner/pi-coding-agent": "*",
+		"@mariozechner/pi-tui": "*"
+	},
+	"files": [
+		"extensions",
+		"LICENSE",
+		"package.json"
+	],
+	"scripts": {
+		"typecheck": "bunx tsc -p tsconfig.json"
+	}
+}
