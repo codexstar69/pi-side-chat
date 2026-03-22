@@ -28,8 +28,7 @@ export default function (pi: ExtensionAPI) {
 		);
 	}
 
-	function resolveModel(commandContext: ExtensionContext): any | null {
-		const config = loadSideChatConfig();
+	function resolveModel(commandContext: ExtensionContext, config: ReturnType<typeof loadSideChatConfig>): any | null {
 		// If a custom model is configured, try to find it in the registry
 		if (config.model) {
 			try {
@@ -60,7 +59,7 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 
-		const chatModel = resolveModel(commandContext);
+		const chatModel = resolveModel(commandContext, config);
 		if (!chatModel) {
 			commandContext.ui.notify("Cannot open side chat: no model configured.", "error");
 			return;

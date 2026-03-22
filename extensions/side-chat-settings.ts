@@ -36,7 +36,7 @@ export function loadSideChatConfig(): SideChatConfig {
 		if (!fs.existsSync(CONFIG_FILE)) return { ...DEFAULT_CONFIG };
 		const parsed = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8")) as Partial<SideChatConfig>;
 		return {
-			enabled: parsed.enabled ?? DEFAULT_CONFIG.enabled,
+			enabled: typeof parsed.enabled === "boolean" ? parsed.enabled : DEFAULT_CONFIG.enabled,
 			model: typeof parsed.model === "string" ? parsed.model : DEFAULT_CONFIG.model,
 			overlayWidth: typeof parsed.overlayWidth === "string" ? parsed.overlayWidth : DEFAULT_CONFIG.overlayWidth,
 			overlayMaxHeight: typeof parsed.overlayMaxHeight === "string" ? parsed.overlayMaxHeight : DEFAULT_CONFIG.overlayMaxHeight,
@@ -46,15 +46,17 @@ export function loadSideChatConfig(): SideChatConfig {
 	}
 }
 
-export function saveSideChatConfig(config: SideChatConfig): void {
+export function saveSideChatConfig(config: SideChatConfig): boolean {
 	try {
 		fs.mkdirSync(CONFIG_DIR, { recursive: true });
 		const tmp = CONFIG_FILE + ".tmp." + process.pid;
 		fs.writeFileSync(tmp, JSON.stringify(config, null, "\t"));
 		fs.renameSync(tmp, CONFIG_FILE);
+		return true;
 	} catch (error) {
 		const msg = error instanceof Error ? error.message : String(error);
 		console.error(`[side-chat] saveSideChatConfig failed: ${msg}`);
+		return false;
 	}
 }
 
@@ -170,11 +172,16 @@ class SideChatSettingsPanel {
 		if (matchesKey(data, Key.up) && this.subRow > 0) { this.subRow--; this.inv(); return; }
 		if (matchesKey(data, Key.down) && this.subRow < this.filtered.length - 1) { this.subRow++; this.inv(); return; }
 		if (matchesKey(data, Key.enter)) {
-			const modelId = this.search.trim() || (this.filtered[this.subRow]?.id || "");
+			// Prefer selected item from filtered list; fall back to typed search only if it matches a known model
+			const selected = this.filtered[this.subRow]?.id;
+			const typed = this.search.trim();
+			const modelId = selected || (typed && this.modelList.includes(typed) ? typed : "");
 			if (modelId) {
 				this.config.model = modelId;
-				saveSideChatConfig(this.config);
-				this.showStatus(`Model: ${modelId}`);
+				this.saveAndStatus(`Model: ${modelId}`);
+			} else if (typed) {
+				this.showStatus("Unknown model — pick from list", 3000);
+				return; // stay in picker
 			}
 			this.sub = "main"; this.search = ""; this.inv(); return;
 		}
@@ -196,30 +203,34 @@ class SideChatSettingsPanel {
 		return 0; // About — read-only
 	}
 
+	private saveAndStatus(successMsg: string) {
+		if (saveSideChatConfig(this.config)) {
+			this.showStatus(successMsg);
+		} else {
+			this.showStatus("Save failed — check permissions", 4000);
+		}
+	}
+
 	private select() {
 		if (this.tab === TAB_CHAT) {
 			if (this.row === 0) {
 				this.config.enabled = !this.config.enabled;
-				saveSideChatConfig(this.config);
-				this.showStatus(this.config.enabled ? "Side Chat ON" : "Side Chat OFF");
+				this.saveAndStatus(this.config.enabled ? "Side Chat ON" : "Side Chat OFF");
 			} else if (this.row === 1) {
 				// Cycle overlay width
 				const idx = WIDTH_OPTIONS.indexOf(this.config.overlayWidth);
 				this.config.overlayWidth = WIDTH_OPTIONS[(idx + 1) % WIDTH_OPTIONS.length];
-				saveSideChatConfig(this.config);
-				this.showStatus(`Width: ${this.config.overlayWidth}`);
+				this.saveAndStatus(`Width: ${this.config.overlayWidth}`);
 			} else if (this.row === 2) {
 				// Cycle overlay height
 				const idx = HEIGHT_OPTIONS.indexOf(this.config.overlayMaxHeight);
 				this.config.overlayMaxHeight = HEIGHT_OPTIONS[(idx + 1) % HEIGHT_OPTIONS.length];
-				saveSideChatConfig(this.config);
-				this.showStatus(`Height: ${this.config.overlayMaxHeight}`);
+				this.saveAndStatus(`Height: ${this.config.overlayMaxHeight}`);
 			}
 		} else if (this.tab === TAB_MODEL) {
 			if (this.row === 0) {
 				this.config.model = "";
-				saveSideChatConfig(this.config);
-				this.showStatus("Using session model");
+				this.saveAndStatus("Using session model");
 			} else if (this.row === 1) {
 				this.sub = "model-picker";
 				this.subRow = 0;
