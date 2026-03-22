@@ -7,7 +7,7 @@
 		"noEmit": true,
 		"skipLibCheck": true,
 		"esModuleInterop": true,
-		"baseUrl": "..",
+		"baseUrl": ".",
 		"paths": {
 			"@mariozechner/*": ["node_modules/@mariozechner/*"]
 		}

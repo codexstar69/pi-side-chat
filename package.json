@@ -14,7 +14,17 @@
 		"@mariozechner/pi-agent-core": "*",
 		"@mariozechner/pi-ai": "*",
 		"@mariozechner/pi-coding-agent": "*",
-		"@mariozechner/pi-tui": "*"
+		"@mariozechner/pi-tui": "*",
+		"@sinclair/typebox": "*"
+	},
+	"keywords": [
+		"pi-package",
+		"pi-extension",
+		"side-chat",
+		"pi"
+	],
+	"engines": {
+		"node": ">=18.17"
 	},
 	"files": [
 		"extensions",

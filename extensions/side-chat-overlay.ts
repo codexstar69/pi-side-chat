@@ -501,6 +501,7 @@ export class SideChatOverlay implements Component, Focusable {
 					this.toolStatus = "";
 					this.errorText = "";
 					this.stopSpinner();
+					this.opts.tui.requestRender();
 				} else this.dispose();
 				return;
 			}
