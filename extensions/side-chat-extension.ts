@@ -9,6 +9,7 @@ import type {
 	ExtensionAPI,
 	ExtensionContext,
 } from "@mariozechner/pi-coding-agent";
+import { loadSideChatConfig } from "./side-chat-settings";
 
 export default function (pi: ExtensionAPI) {
 	let chatOverlayHandle: { focus: () => void; unfocus: () => void; isFocused: () => boolean } | null = null;
@@ -27,6 +28,22 @@ export default function (pi: ExtensionAPI) {
 		);
 	}
 
+	function resolveModel(commandContext: ExtensionContext): any | null {
+		const config = loadSideChatConfig();
+		// If a custom model is configured, try to find it in the registry
+		if (config.model) {
+			try {
+				const all = (commandContext.modelRegistry as any).getAll?.() || [];
+				const found = all.find((m: any) =>
+					m.id === config.model || `${m.provider}/${m.id}` === config.model
+				);
+				if (found && isModelLike(found)) return found;
+			} catch { /* fall through to session model */ }
+		}
+		const model = commandContext.model;
+		return model && isModelLike(model) ? model : null;
+	}
+
 	async function openSideChat(commandContext: ExtensionContext) {
 		if (chatOpenInProgress) return;
 		if (chatOverlayHandle) {
@@ -37,8 +54,14 @@ export default function (pi: ExtensionAPI) {
 		}
 		if (!(commandContext as any).hasUI) return;
 
-		const chatModel = commandContext.model;
-		if (!chatModel || !isModelLike(chatModel)) {
+		const config = loadSideChatConfig();
+		if (!config.enabled) {
+			commandContext.ui.notify("Side chat is disabled. Enable it in /sidechat-settings", "info");
+			return;
+		}
+
+		const chatModel = resolveModel(commandContext);
+		if (!chatModel) {
 			commandContext.ui.notify("Cannot open side chat: no model configured.", "error");
 			return;
 		}
@@ -72,8 +95,8 @@ export default function (pi: ExtensionAPI) {
 				{
 					overlay: true,
 					overlayOptions: {
-						width: "92%" as any,
-						maxHeight: "60%" as any,
+						width: (config.overlayWidth || "92%") as any,
+						maxHeight: (config.overlayMaxHeight || "60%") as any,
 						anchor: "center" as any,
 						margin: { top: 0, left: 1, right: 1 } as any,
 						nonCapturing: true,
@@ -99,6 +122,20 @@ export default function (pi: ExtensionAPI) {
 		description: "Open side chat \u2014 parallel agent with read-only tools",
 		handler: async (_args: string | undefined, commandContext: ExtensionContext) => {
 			await openSideChat(commandContext);
+		},
+	});
+
+	pi.registerCommand("sidechat-settings", {
+		description: "Side chat settings \u2014 model, overlay size, shortcuts",
+		handler: async (_args: string | undefined, commandContext: ExtensionContext) => {
+			try {
+				const { openSideChatSettings } = await import("./side-chat-settings");
+				await openSideChatSettings(commandContext);
+			} catch (error) {
+				const msg = error instanceof Error ? error.message : String(error);
+				console.error(`[side-chat] settings failed: ${msg}`);
+				try { commandContext.ui.notify(`Settings failed to open: ${msg}`, "error"); } catch { /* */ }
+			}
 		},
 	});
 
