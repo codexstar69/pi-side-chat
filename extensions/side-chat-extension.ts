@@ -29,13 +29,13 @@ export default function (pi: ExtensionAPI) {
 
 	async function openSideChat(commandContext: ExtensionContext) {
 		if (chatOpenInProgress) return;
-		if (!(commandContext as any).hasUI) return;
 		if (chatOverlayHandle) {
 			chatOverlayHandle.isFocused()
 				? chatOverlayHandle.unfocus()
 				: chatOverlayHandle.focus();
 			return;
 		}
+		if (!(commandContext as any).hasUI) return;
 
 		const chatModel = commandContext.model;
 		if (!chatModel || !isModelLike(chatModel)) {
