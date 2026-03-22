@@ -227,7 +227,7 @@ export class SideChatOverlay implements Component, Focusable {
 			convertToLlm,
 			getApiKey: async (provider) => {
 				const key = await opts.modelRegistry.getApiKeyForProvider(provider);
-				if (!key) throw new Error("No API key");
+				if (!key) throw new Error(`No API key configured for provider "${provider}"`);
 				return key;
 			},
 		});
@@ -282,8 +282,10 @@ export class SideChatOverlay implements Component, Focusable {
 					}).filter(Boolean).join("\n\n");
 
 					return { content: [{ type: "text" as const, text: "Main agent activity:\n\n" + formatted }], details: {} };
-				} catch {
-					return { content: [{ type: "text" as const, text: "Could not read main agent state." }], details: {} };
+				} catch (error) {
+					const errMsg = error instanceof Error ? error.message : String(error);
+					console.error(`[side-chat] peek_main failed: ${errMsg}`);
+					return { content: [{ type: "text" as const, text: `Could not read main agent state: ${errMsg}` }], details: {} };
 				}
 			},
 		};

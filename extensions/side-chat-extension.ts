@@ -11,7 +11,7 @@ import type {
 } from "@mariozechner/pi-coding-agent";
 
 export default function (pi: ExtensionAPI) {
-	let chatOverlayHandle: any = null;
+	let chatOverlayHandle: { focus: () => void; unfocus: () => void; isFocused: () => boolean } | null = null;
 	let chatOverlayRef: any = null;
 	let chatOpenInProgress = false;
 
@@ -29,6 +29,7 @@ export default function (pi: ExtensionAPI) {
 
 	async function openSideChat(commandContext: ExtensionContext) {
 		if (chatOpenInProgress) return;
+		if (!(commandContext as any).hasUI) return;
 		if (chatOverlayHandle) {
 			chatOverlayHandle.isFocused()
 				? chatOverlayHandle.unfocus()
@@ -84,8 +85,11 @@ export default function (pi: ExtensionAPI) {
 				},
 			);
 		} catch (error) {
+			chatOverlayHandle = null;
+			chatOverlayRef = null;
 			const msg = error instanceof Error ? error.message : String(error);
 			console.error(`[side-chat] openSideChat failed: ${msg}`);
+			try { commandContext.ui.notify(`Side chat failed to open: ${msg}`, "error"); } catch { /* ui may be unavailable */ }
 		} finally {
 			chatOpenInProgress = false;
 		}
@@ -106,6 +110,7 @@ export default function (pi: ExtensionAPI) {
 			},
 		});
 	} catch (err) {
-		console.error(`[side-chat] registerShortcut failed: ${(err as Error).message}`);
+		const msg = err instanceof Error ? err.message : String(err);
+		console.error(`[side-chat] registerShortcut failed: ${msg}`);
 	}
 }
