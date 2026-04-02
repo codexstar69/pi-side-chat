@@ -28,6 +28,9 @@
 	},
 	"files": [
 		"extensions",
+		"docs/screenshots",
+		"README.md",
+		"CHANGELOG.md",
 		"LICENSE",
 		"package.json"
 	],
