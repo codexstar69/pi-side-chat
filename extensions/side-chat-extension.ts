@@ -149,4 +149,23 @@ export default function (pi: ExtensionAPI) {
 		const msg = err instanceof Error ? err.message : String(err);
 		console.error(`[side-chat] registerShortcut failed: ${msg}`);
 	}
+
+	// Dispose the overlay before pi tears down the active session on /new, /fork,
+	// /resume, /reload, or /quit. The overlay captured a sessionManager bound to
+	// the outgoing session; touching it via peek_main after replacement throws
+	// in pi >= 0.69.0 ("stale extension context") instead of silently misrouting.
+	// dispose() is synchronous (stopSpinner/agentUnsub/onClose all sync), so no
+	// await is needed and no other handler can interleave mid-call.
+	pi.on("session_shutdown", () => {
+		if (!chatOverlayRef) return;
+		try {
+			chatOverlayRef.dispose();
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			console.error(`[side-chat] session_shutdown dispose failed: ${msg}`);
+		} finally {
+			chatOverlayRef = null;
+			chatOverlayHandle = null;
+		}
+	});
 }

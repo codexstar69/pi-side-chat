@@ -9,8 +9,25 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { matchesKey, Key, truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
+
+// Resolve the extension's own package.json once so the About tab tracks the
+// shipped version automatically instead of drifting from a hardcoded literal.
+// Path assumption: this file lives in extensions/ and ships unbundled (pi loads
+// .ts directly via jiti). If a build step is added later that nests output, the
+// "../package.json" relative path must be revisited; falls back to "?" on any
+// resolution or parse failure so the UI never breaks.
+const PKG_VERSION: string = (() => {
+	try {
+		const here = path.dirname(fileURLToPath(import.meta.url));
+		const pkg = JSON.parse(fs.readFileSync(path.join(here, "..", "package.json"), "utf-8")) as { version?: unknown };
+		return typeof pkg.version === "string" ? pkg.version : "?";
+	} catch {
+		return "?";
+	}
+})();
 
 // ─── Config persistence ──────────────────────────────────────────────────────
 
@@ -362,7 +379,7 @@ class SideChatSettingsPanel {
 	}
 
 	private renderAboutTab(lines: string[], line: (s: string) => string, _iw: number) {
-		lines.push(line(`${ACC}Pi Side Chat${RST}  ${DIM}v1.0.0${RST}`));
+		lines.push(line(`${ACC}Pi Side Chat${RST}  ${DIM}v${PKG_VERSION}${RST}`));
 		lines.push(line(""));
 		lines.push(line(`${BRT}Parallel AI agent with read-only tools.${RST}`));
 		lines.push(line(`${DIM}Runs alongside the main coding agent.${RST}`));

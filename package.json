@@ -1,6 +1,6 @@
 {
 	"name": "@codexstar/pi-side-chat",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "Standalone side chat for Pi CLI — parallel AI agent with read-only tools",
 	"type": "module",
 	"author": "Abhishek Tiwari",
